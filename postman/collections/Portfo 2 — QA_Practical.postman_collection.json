@@ -1,0 +1,2502 @@
+{
+  "info": {
+    "_postman_id": "9ad1d37c-46b3-4f19-80e2-44d09d07d983",
+    "name": "Portfo 2 — QA_Practical",
+    "description": "# Практическая коллекция Postman для тестирования REST API проекта Portfo 2.\n\n## Содержание\n\nКоллекция включает запросы и автоматизированные проверки для следующих функциональных областей:\n\n- **Authorization** — авторизация пользователя;\n    \n- **Refresh Token** — обновление access-токена;\n    \n- **Registration** — регистрация пользователей;\n    \n- **Exploratory Testing** — исследовательское тестирование API и проверка граничных и некорректных значений.\n    \n\n## Автоматизированные проверки\n\nPostman-тесты проверяют:\n\n- HTTP-статус ответа;\n    \n- Content-Type;\n    \n- наличие обязательных полей;\n    \n- типы и значения данных в ответе;\n    \n- наличие и непустое значение токенов;\n    \n- корректность обновления access-токена;\n    \n- использование токенов в последующих авторизованных запросах.\n    \n\nТокены и другие тестовые данные передаются через переменные окружения Postman.\n\n## Служебные запросы\n\nНекоторые запросы используются для первоначальной подготовки тестовых данных и не включаются в стандартный прогон коллекции.\n\n- `[Служебный] Регистрация тестового пользователя` — используется для создания постоянной тестовой учётной записи, которая затем применяется в сценариях авторизации.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "28094609",
+    "_collection_link": "https://go.postman.co/collection/28094609-9ad1d37c-46b3-4f19-80e2-44d09d07d983?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Authorization",
+      "item": [
+        {
+          "name": "Успешная авторизация с валидными email и паролем",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 200\r\npm.test(\"Status code is 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n//  Проверяем, что Content-Type ответа — application/json\r\npm.test(\"Content-Type is application/json\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r\n});\r\n\r\nconst jsonData = pm.response.json();\r\n// проверяем что в ответе есть поля access и refresh\r\npm.test(\"Response contains access and refresh tokens\", function () {\r\n    pm.expect(jsonData).to.have.property(\"access\");\r\n    pm.expect(jsonData).to.have.property(\"refresh\");\r\n});\r\n// проверяем что токены не пустые и имеют правильный тип данных (строка)\r\npm.test(\"Tokens are non-empty strings\", function () {\r\n    pm.expect(jsonData.access).to.be.a(\"string\").and.not.empty;\r\n    pm.expect(jsonData.refresh).to.be.a(\"string\").and.not.empty;\r\n});\r\n// устанавливаем токены в переменные окружения для последующего использования в других запросах\r\npm.environment.set(\"access_token\", jsonData.access);\r\npm.environment.set(\"refresh_token\", jsonData.refresh);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"{{email_auth}}\",\r\n  \"password\": \"{{password_auth}}\"\r\n}\r\n\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/login/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "login",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Авторизация с валидным email и неверным паролем",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 401\r\npm.test(\"Status code is 401\", function () {\r\n    pm.response.to.have.status(401);\r\n});\r\n// Получаем JSON из тела ответа\r\nconst jsonData = pm.response.json();\r\n// Проверяем,  что ответ содержит сообщение об ошибке\r\npm.test(\"Response contains detail message\", function () {\r\n    pm.expect(jsonData).to.have.property(\"detail\")});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"{{email_auth}}\",\r\n  \"password\": \"{{wrong_password}}\"\r\n}\r\n\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/login/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "login",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Авторизация с пустым email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 400\r\npm.test(\"Status code is 400\", function () {\r\n    pm.response.to.have.status(400);\r\n});\r\n;\r\n// Получаем JSON из тела ответа\r\nconst jsonData = pm.response.json();\r\n\r\n// Проверяем, что ответ содержит ошибку валидации для поля email\r\npm.test(\"Response contains email error\", function () {\r\n    pm.expect(jsonData).to.have.property(\"email\")});\r\n    \r\n// // Проверяем, что значение ошибки для поля email представлено в виде массива\r\npm.test(\"Email error is an array\", function () {\r\n    pm.expect(jsonData.email).to.be.an('array')\r\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"\",\r\n  \"password\": \"{{password_auth}}\"\r\n}\r\n\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/login/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "login",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Авторизация с пустым паролем",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 400\npm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n});\n\n// Получаем JSON из тела ответа\nconst jsonData = pm.response.json();\n\n// Проверяем, что ответ содержит сообщение, что поле не может быть пустым\npm.test(\"Response contains password error\", function () {\n    pm.expect(jsonData).to.have.property(\"password\");\n});\n\n// Проверяем, что сообщение об ошибке  - это массив\npm.test(\"Password error is an array\", function () {\n    pm.expect(jsonData.password).to.be.an(\"array\");\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": \"{{email_auth}}\",\r\n    \"password\": \"\"\r\n}\r\n\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/login/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "login",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Авторизация с email = null",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 400\npm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n});\n\n// Получаем JSON из тела ответа\nconst jsonData = pm.response.json();\n\n// Проверяем, что ответ содержит ошибку валидации для поля email\npm.test(\"Response contains email error\", function () {\n    pm.expect(jsonData).to.have.property(\"email\");\n});\n\n// Проверяем, что сообщение об ошибке  - это массив\npm.test(\"Email error is an array\", function () {\n    pm.expect(jsonData.email).to.be.an(\"array\");\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": null,\r\n    \"password\": \"{{password_auth}}\"\r\n}\r\n\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/login/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "login",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Авторизация с password = null",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 400\npm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n});\n\n// Получаем JSON из тела ответа\nconst jsonData = pm.response.json();\n\n// Проверяем, что ответ содержит ошибку валидации для поля password\npm.test(\"Response contains  password error\", function () {\n    pm.expect(jsonData).to.have.property(\"password\");\n});\n\n// Проверяем, что сообщение об ошибке  - это массив\npm.test(\"Password error is an array\", function () {\n    pm.expect(jsonData.password).to.be.an(\"array\");\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": \"{{email_auth}}\",\r\n    \"password\": null\r\n}\r\n\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/login/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "login",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Авторизация без поля email при валидном пароле",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 400\npm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n});\n\n// Получаем JSON из тела ответа\nconst jsonData = pm.response.json();\n\n// Проверяем, что ответ содержит ошибку валидации для поля email\npm.test(\"Response contains email error\", function () {\n    pm.expect(jsonData).to.have.property(\"email\");\n});\n\n// Проверяем, что сообщение об ошибке  - это массив\npm.test(\"Email error is an array\", function () {\n    pm.expect(jsonData.email).to.be.an(\"array\");\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{    \r\n    \"password\": \"{{password_auth}}\"\r\n}\r\n\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/login/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "login",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Авторизация без поля password при валидном email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 400\npm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n});\n\n// Получаем JSON из тела ответа\nconst jsonData = pm.response.json();\n\n// Проверяем, что ответ содержит ошибку валидации для поля password\npm.test(\"Response contains password error\", function () {\n    pm.expect(jsonData).to.have.property(\"password\");\n});\n\n// Проверяем, что сообщение об ошибке  - это массив\npm.test(\"Password error is an array\", function () {\n    pm.expect(jsonData.password).to.be.an(\"array\");\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{    \r\n    \"email\": \"{{email_auth}}\"    \r\n}\r\n\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/login/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "login",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Авторизация без полей email и password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 400\npm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n});\n\n// Получаем JSON из тела ответа\nconst jsonData = pm.response.json();\n\n// Проверяем, что ответ содержит ошибку валидации для полей email и password\npm.test(\"Response contains email, password errors\", function () {\n    pm.expect(jsonData).to.have.property(\"email\")\n    pm.expect(jsonData).to.have.property(\"password\");\n});\n\n// Проверяем, что ошибки для обоих полей представлены в виде массивов\npm.test(\"Email ahd password error is an array\", function () {\n    pm.expect(jsonData.email).to.be.an(\"array\")\n    pm.expect(jsonData.password).to.be.an(\"array\");\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{}\r\n\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/login/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "login",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Авторизация с пустым телом запроса",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 400\npm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n});\n\n// Получаем JSON из тела ответа\nconst jsonData = pm.response.json();\n\n// Проверяем, что ответ содержит ошибки валидации для обоих полей \npm.test(\"Response contains email and password errors\", function () {\n    pm.expect(jsonData).to.have.property(\"email\");\n    pm.expect(jsonData).to.have.property(\"password\");\n});\n\n// Проверяем, что ошибки валидации для обоих полей представлены в виде массисва\npm.test(\"Email and password errors are arrays\", function () {\n    pm.expect(jsonData.email).to.be.an('array');\n    pm.expect(jsonData.password).to.be.an('array');\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/login/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "login",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Авторизация с паролем минимальной допустимой длины",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 200\npm.test(\"Status code is 200\", function () {\n    pm.response.to.have.status(200);\n});\n\nconst jsonData = pm.response.json(); // Преобразуем ответ в JSON\n\n// Проверяем, что ответ содержит refresh token\npm.test(\"Response contains refresh token\", function () {\n    pm.expect(jsonData).to.have.property(\"refresh\");\n});\n\n// Проверяем, что ответ содержит access token\npm.test(\"Response contains access token\", function () {\n    pm.expect(jsonData).to.have.property(\"access\");\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": \"qa.minpassword@example.com\",\r\n    \"password\": \"a\"\r\n}\r\n\r\n  ",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/login/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "login",
+                ""
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Registration",
+      "item": [
+        {
+          "name": "Регистрация с валидными данными",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 201\npm.test(\"Status code is 201\", function () {\n    pm.response.to.have.status(201);\n    });\n// Получаем  JSON из ответа сервера\nconst jsonData = pm.response.json();\n// Проверяем, что в ответе содержатся  user_id, profile_id, email зарегистрированного пользователя\npm.test(\"В ответе присутствуют user_id, profile_id, email\", function () {\n    pm.expect(jsonData).to.have.property(\"user_id\");\n    pm.expect(jsonData).to.have.property(\"profile_id\");\n    pm.expect(jsonData).to.have.property(\"email\");\n    });\n// Проверяем, что user_id и profile_id являются числами\npm.test(\"user_id и profile_id - числа\", function () {\n    pm.expect(jsonData.user_id).to.be.a('number');\n    pm.expect(jsonData.profile_id).to.be.a('number');\n    });\n// Проверяем, что email в ответе соответствует сгенерированному\n    pm.test(\"email в ответе соответствует сгенерированному\", function () {\n        pm.expect(jsonData.email).to.equal(pm.environment.get(\"registration_email\"));\n    });\n// Сохраняем profile_id в переменную коллекции Postman\n    pm.collectionVariables.set(\"registered_profile_id\", jsonData.profile_id);\n\n    console.log(\"Email из ответа:\", jsonData.email);\n    console.log(\"registration_email:\", pm.environment.get(\"registration_email\"));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем случайный email и временно сохраняем его в JavaScript-переменную randomEmail\r\nconst randomEmail = pm.variables.replaceIn(\"{{$randomEmail}}\");\r\n// Записываем это значение в переменную окружения Postman registration_email\r\npm.environment.set(\"registration_email\", randomEmail);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"email\": \"{{registration_email}}\",\r\n\"password\": \"{{$randomPassword}}\",\r\n\"profession_ids\": {\r\n\"profession_id1\": 1,\r\n\"profession_id2\": 2,\r\n\"profession_id3\": 3\r\n    }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[Служебный] Регистрация тестового пользователя",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 201\npm.test(\"Status code is 201\", function () {\n    pm.response.to.have.status(201);\n    });\n// Получаем  JSON из ответа сервера\nconst jsonData = pm.response.json();\n// Проверяем, что в ответе содержатся  user_id, profile_id, email зарегистрированного пользователя\npm.test(\"В ответе присутствуют user_id, profile_id, email\", function () {\n    pm.expect(jsonData).to.have.property(\"user_id\");\n    pm.expect(jsonData).to.have.property(\"profile_id\");\n    pm.expect(jsonData).to.have.property(\"email\");\n    });\n// Проверяем, что user_id и profile_id являются числами\npm.test(\"user_id и profile_id - числа\", function () {\n    pm.expect(jsonData.user_id).to.be.a('number');\n    pm.expect(jsonData.profile_id).to.be.a('number');\n    });\n// Проверяем, что email в ответе соответствует сгенерированному\n    pm.test(\"email в ответе соответствует сгенерированному\", function () {\n        pm.expect(jsonData.email).to.equal(pm.environment.get(\"registration_email\"));\n    });\n// Сохраняем profile_id в переменную коллекции Postman\n    pm.collectionVariables.set(\"registered_profile_id\", jsonData.profile_id);\n\n    console.log(\"Email из ответа:\", jsonData.email);\n    console.log(\"registration_email:\", pm.environment.get(\"registration_email\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"email\": \"test_user_elena_qa@example.com\",\r\n\"password\": \"password_elena_qa_2026\",\r\n\"profession_ids\": {\r\n\"profession_id1\": 1,\r\n\"profession_id2\": 2,\r\n\"profession_id3\": 3\r\n    }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Регистрация с password длиной 1 символ",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 201\npm.test(\"Status code is 201\", function () {\n    pm.response.to.have.status(201);\n    });\n// Получаем  JSON из ответа сервера\nconst jsonData = pm.response.json();\n// Проверяем, что в ответе содержатся  user_id, profile_id, email зарегистрированного пользователя\npm.test(\"В ответе присутствуют user_id, profile_id, email\", function () {\n    pm.expect(jsonData).to.have.property(\"user_id\");\n    pm.expect(jsonData).to.have.property(\"profile_id\");\n    pm.expect(jsonData).to.have.property(\"email\");\n    });\n// Проверяем, что user_id и profile_id являются числами\npm.test(\"user_id и profile_id - числа\", function () {\n    pm.expect(jsonData.user_id).to.be.a('number');\n    pm.expect(jsonData.profile_id).to.be.a('number');\n    });\n// Проверяем, что email в ответе соответствует сгенерированному\n    pm.test(\"email в ответе соответствует сгенерированному\", function () {\n        pm.expect(jsonData.email).to.equal(pm.environment.get(\"registration_email\"));\n    });\n    console.log(\"Email из ответа:\", jsonData.email);\n    console.log(\"registration_email:\", pm.environment.get(\"registration_email\"));\n"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем случайный email и временно сохраняем его в JavaScript-переменную randomEmail\r\nconst randomEmail = pm.variables.replaceIn(\"{{$randomEmail}}\");\r\n// Записываем это значение в переменную окружения Postman registration_email\r\npm.environment.set(\"registration_email\", randomEmail);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"{{registration_email}}\",\r\n  \"password\": \"a\",\r\n  \"profession_ids\": {\r\n    \"profession_id1\": 1,\r\n    \"profession_id2\": 2,\r\n    \"profession_id3\": 3\r\n  }\r\n}\r\n\r\n  ",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Регистрация с одной профессией",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 201\npm.test(\"Status code is 201\", function () {\n    pm.response.to.have.status(201);\n    });\n// Получаем  JSON из ответа сервера\nconst jsonData = pm.response.json();\n// Проверяем, что в ответе содержатся  user_id, profile_id, email зарегистрированного пользователя\npm.test(\"В ответе присутствуют user_id, profile_id, email\", function () {\n    pm.expect(jsonData).to.have.property(\"user_id\");\n    pm.expect(jsonData).to.have.property(\"profile_id\");\n    pm.expect(jsonData).to.have.property(\"email\");\n    });\n// Проверяем, что user_id и profile_id являются числами\npm.test(\"user_id и profile_id - числа\", function () {\n    pm.expect(jsonData.user_id).to.be.a('number');\n    pm.expect(jsonData.profile_id).to.be.a('number');\n    });\n// Проверяем, что email в ответе соответствует сгенерированному\n    pm.test(\"email в ответе соответствует сгенерированному\", function () {\n        pm.expect(jsonData.email).to.equal(pm.environment.get(\"registration_email\"));\n    });\n    console.log(\"Email из ответа:\", jsonData.email);\n    console.log(\"registration_email:\", pm.environment.get(\"registration_email\"));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем случайный email и временно сохраняем его в JavaScript-переменную randomEmail\r\nconst randomEmail = pm.variables.replaceIn(\"{{$randomEmail}}\");\r\n// Записываем это значение в переменную окружения Postman registration_email\r\npm.environment.set(\"registration_email\", randomEmail);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"email\": \"{{registration_email}}\",\r\n\"password\": \"{{$randomPassword}}\",\r\n\"profession_ids\": {\r\n\"profession_id1\": 1\r\n    }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Регистрация с валидным invite_hash",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 201\npm.test(\"Status code is 201\", function () {\n    pm.response.to.have.status(201);\n    });\n// Получаем  JSON из ответа сервера\nconst jsonData = pm.response.json();\n// Проверяем, что в ответе содержатся  user_id, profile_id, email зарегистрированного пользователя\npm.test(\"В ответе присутствуют user_id, profile_id, email\", function () {\n    pm.expect(jsonData).to.have.property(\"user_id\");\n    pm.expect(jsonData).to.have.property(\"profile_id\");\n    pm.expect(jsonData).to.have.property(\"email\");\n    });\n// Проверяем, что user_id и profile_id являются числами\npm.test(\"user_id и profile_id - числа\", function () {\n    pm.expect(jsonData.user_id).to.be.a('number');\n    pm.expect(jsonData.profile_id).to.be.a('number');\n    });\n// Проверяем, что email в ответе соответствует сгенерированному\n    pm.test(\"email в ответе соответствует сгенерированному\", function () {\n        pm.expect(jsonData.email).to.equal(pm.environment.get(\"registration_email\"));\n    });\n    console.log(\"Email из ответа:\", jsonData.email);\n    console.log(\"registration_email:\", pm.environment.get(\"registration_email\"));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем случайный email и временно сохраняем его в JavaScript-переменную randomEmail\r\nconst randomEmail = pm.variables.replaceIn(\"{{$randomEmail}}\");\r\n// Записываем это значение в переменную окружения Postman registration_email\r\npm.environment.set(\"registration_email\", randomEmail);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"email\": \"{{registration_email}}\",\r\n\"password\": \"{{$randomPassword}}\",\r\n\"profession_ids\": {\r\n\"profession_id1\": 1,\r\n\"profession_id2\": 2,\r\n\"profession_id3\": 3\r\n    },\r\n\"invite_hash\": \"{{invite_hash}}\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Регистрация с email максимальной длины",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус ответа 201\", function () {\n    pm.response.to.have.status(201);\n});\nconst jsonData = pm.response.json();\npm.test(\"В ответе есть user_id\", function () {\n    pm.expect(jsonData).to.have.property(\"user_id\");\n});\n\npm.test(\"В ответе есть profile_id\", function () {\n    pm.expect(jsonData).to.have.property(\"profile_id\");\n});\n\npm.test(\"В ответе есть email\", function () {\n    pm.expect(jsonData).to.have.property(\"email\");\n});"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Генерируем уникальный email длиной 254 символа\r\n\r\n// Генерируем уникальный email длиной ровно 254 символа\r\n\r\nconst domain = \"example.com\";\r\nconst uniquePart = Date.now().toString();\r\n\r\nconst localPart =\r\n    \"user\" +\r\n    uniquePart +\r\n    \"x\".repeat(\r\n        254 - domain.length - 1 - \"user\".length - uniquePart.length\r\n    );\r\n\r\npm.variables.set(\r\n    \"max_length_email\",\r\n    `${localPart}@${domain}`\r\n);\r\n\r\nconsole.log(\r\n    \"REG-005 max_length_email:\",\r\n    pm.variables.replaceIn(\"{{max_length_email}}\")\r\n);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": \"{{max_length_email}}\",\r\n    \"password\": \"{{$randomPassword}}\",\r\n    \"profession_ids\": {\r\n        \"profession_id1\": 1,\r\n        \"profession_id2\": 2,\r\n        \"profession_id3\": 3\r\n    }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Получение invite_hash для текущего пользователя",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем статус-код\npm.test(\"Status code - 200\", function () {\n    pm.response.to.have.status(200);\n});\n\n// Получаем JSON из ответа\nconst jsonData = pm.response.json();\n\n// Проверяем наличие invite_hash и profile_id\npm.test(\"Response содержит invite_hash and profile_id\", function () {\n    pm.expect(jsonData).to.have.property(\"invite_hash\");\n    pm.expect(jsonData).to.have.property(\"profile_id\");\n});\n// Проверяем, что invite_hash  не пустое значение\npm.test(\"invite_hash не пустое значение\", function () {\n    pm.expect(jsonData.invite_hash).to.not.be.empty;\n});\n\n// Сохраняем invite_hash в переменную окружения\npm.environment.set(\"invite_hash\", jsonData.invite_hash);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/profiles/invite_hash/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "profiles",
+                "invite_hash",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Проверка доступности профиля зарегистрированного пользователя",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем статус-код\npm.test(\"Status code is 200\", function () {\n    pm.response.to.have.status(200);\n});\n\n// Получаем JSON из ответа\nconst jsonData = pm.response.json();\n\n// Проверяем, что id профиля соответствует id профиля, созданному при регистрации\npm.test(\"ID профиля соответствует созданному при регистрации\", function () {\n    pm.expect(jsonData.id).to.equal(\n        pm.collectionVariables.get(\"registered_profile_id\")\n    );\n});\n\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/profiles/profile/{{registered_profile_id}}/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "profiles",
+                "profile",
+                "{{registered_profile_id}}",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Регистрация с 4 профессиями",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 400\npm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n    });\n// Получаем  JSON из ответа сервера\nconst jsonData = pm.response.json();\n// Проверяем, что в ответе присутствует поле profession_ids\npm.test(\"В ответе присутствуют profession_ids\", function () {\n    pm.expect(jsonData).to.have.property('profession_ids');\n}); \n// Проверяем, что profession_ids является массивом\npm.test(\"profession_ids является массивом\", function () {\npm.expect(jsonData.profession_ids).to.be.an('array');\n});\n// Проверяем, что массив profession_ids не пустой\npm.test(\"profession_ids не пустой\", function () {\n    pm.expect(jsonData.profession_ids).to.not.be.empty;\n    });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем случайный email и временно сохраняем его в JavaScript-переменную randomEmail\r\nconst randomEmail = pm.variables.replaceIn(\"{{$randomEmail}}\");\r\n// Записываем это значение в переменную окружения Postman registration_email\r\npm.environment.set(\"registration_email\", randomEmail);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"email\": \"{{registration_email}}\",\r\n\"password\": \"{{$randomPassword}}\",\r\n\"profession_ids\": {\r\n\"profession_id1\": 1,\r\n\"profession_id2\": 2,\r\n\"profession_id3\": 3,\r\n\"profession_id4\": 4\r\n    }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Регистрация без email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 400\npm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n    });\n// Получаем  JSON из ответа сервера\nconst jsonData = pm.response.json();\n// Проверяем, что в ответе присутствует поле email\npm.test(\"В ответе присутствуют email\", function () {\n    pm.expect(jsonData).to.have.property('email');\n}); \n// Проверяем, что email является массивом\npm.test(\"email является массивом\", function () {\n    pm.expect(jsonData.email).to.be.an('array');\n});\n// Проверяем, что массив email не пустой\npm.test(\"email не пустой\", function () {\n    pm.expect(jsonData.email).to.not.be.empty;\n    });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем случайный email и временно сохраняем его в JavaScript-переменную randomEmail\r\nconst randomEmail = pm.variables.replaceIn(\"{{$randomEmail}}\");\r\n// Записываем это значение в переменную окружения Postman registration_email\r\npm.environment.set(\"registration_email\", randomEmail);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"password\": \"{{$randomPassword}}\",\r\n\"profession_ids\": {\r\n\"profession_id1\": 1,\r\n\"profession_id2\": 2,\r\n\"profession_id3\": 3\r\n    }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Регистрация с пустым email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 400\npm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n    });\n// Получаем  JSON из ответа сервера\nconst jsonData = pm.response.json();\n// Проверяем, что в ответе присутствует поле email\npm.test(\"В ответе присутствуют email\", function () {\n    pm.expect(jsonData).to.have.property('email');\n}); \n// Проверяем, что email является массивом\npm.test(\"email является массивом\", function () {\n    pm.expect(jsonData.email).to.be.an('array');\n});\n// Проверяем, что массив email не пустой\npm.test(\"email не пустой\", function () {\n    pm.expect(jsonData.email).to.not.be.empty;\n    });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем случайный email и временно сохраняем его в JavaScript-переменную randomEmail\r\nconst randomEmail = pm.variables.replaceIn(\"{{$randomEmail}}\");\r\n// Записываем это значение в переменную окружения Postman registration_email\r\npm.environment.set(\"registration_email\", randomEmail);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"email\": \"\",\r\n\"password\": \"{{$randomPassword}}\",\r\n\"profession_ids\": {\r\n\"profession_id1\": 1,\r\n\"profession_id2\": 2,\r\n\"profession_id3\": 3\r\n    }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Регистрация с email: null",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 400\npm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n    });\n// Получаем  JSON из ответа сервера\nconst jsonData = pm.response.json();\n// Проверяем, что в ответе присутствует поле email\npm.test(\"В ответе присутствует поле email\", function () {\n    pm.expect(jsonData).to.have.property('email');\n}); \n// Проверяем, что email является массивом\npm.test(\"email является массивом\", function () {\n    pm.expect(jsonData.email).to.be.an('array');\n});\n// Проверяем, что массив email не пустой\npm.test(\"email не пустой\", function () {\n    pm.expect(jsonData.email).to.not.be.empty;\n    });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем случайный email и временно сохраняем его в JavaScript-переменную randomEmail\r\nconst randomEmail = pm.variables.replaceIn(\"{{$randomEmail}}\");\r\n// Записываем это значение в переменную окружения Postman registration_email\r\npm.environment.set(\"registration_email\", randomEmail);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"email\": null,\r\n\"password\": \"{{$randomPassword}}\",\r\n\"profession_ids\": {\r\n\"profession_id1\": 1,\r\n\"profession_id2\": 2,\r\n\"profession_id3\": 3\r\n    }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Регистрация с email длиной более 254 символов",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 400\npm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n    });\n// Получаем  JSON из ответа сервера\nconst jsonData = pm.response.json();\n// Проверяем, что в ответе присутствует поле email\npm.test(\"В ответе присутствует поле email\", function () {\n    pm.expect(jsonData).to.have.property('email');\n}); \n// Проверяем, что email является массивом\npm.test(\"email является массивом\", function () {\n    pm.expect(jsonData.email).to.be.an('array');\n});\n// Проверяем, что массив email не пустой\npm.test(\"email не пустой\", function () {\n    pm.expect(jsonData.email).to.not.be.empty;\n    });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем случайный email и временно сохраняем его в JavaScript-переменную randomEmail\r\nconst randomEmail = pm.variables.replaceIn(\"{{$randomEmail}}\");\r\n// Записываем это значение в переменную окружения Postman registration_email\r\npm.environment.set(\"registration_email\", randomEmail);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"email\": \"abaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.com\",\r\n\"password\": \"{{$randomPassword}}\",\r\n\"profession_ids\": {\r\n\"profession_id1\": 1,\r\n\"profession_id2\": 2,\r\n\"profession_id3\": 3\r\n    }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Регистрация с  email  без @",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 400\npm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n    });\n// Получаем  JSON из ответа сервера\nconst jsonData = pm.response.json();\n// Проверяем, что в ответе присутствует поле email\npm.test(\"В ответе присутствует поле email\", function () {\n    pm.expect(jsonData).to.have.property('email');\n}); \n// Проверяем, что email является массивом\npm.test(\"email является массивом\", function () {\n    pm.expect(jsonData.email).to.be.an('array');\n});\n// Проверяем, что массив email не пустой\npm.test(\"email не пустой\", function () {\n    pm.expect(jsonData.email).to.not.be.empty;\n    });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем случайный email и временно сохраняем его в JavaScript-переменную randomEmail\r\nconst randomEmail = pm.variables.replaceIn(\"{{$randomEmail}}\");\r\n// Записываем это значение в переменную окружения Postman registration_email\r\npm.environment.set(\"registration_email\", randomEmail);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"email\": \"userexample.com\",\r\n\"password\": \"{{$randomPassword}}\",\r\n\"profession_ids\": {\r\n\"profession_id1\": 1,\r\n\"profession_id2\": 2,\r\n\"profession_id3\": 3\r\n    }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Регистрация с email без локальной части",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 400\npm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n    });\n// Получаем  JSON из ответа сервера\nconst jsonData = pm.response.json();\n// Проверяем, что в ответе присутствует поле email\npm.test(\"В ответе присутствует поле email\", function () {\n    pm.expect(jsonData).to.have.property('email');\n}); \n// Проверяем, что email является массивом\npm.test(\"email является массивом\", function () {\n    pm.expect(jsonData.email).to.be.an('array');\n});\n// Проверяем, что массив email не пустой\npm.test(\"email не пустой\", function () {\n    pm.expect(jsonData.email).to.not.be.empty;\n    });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем случайный email и временно сохраняем его в JavaScript-переменную randomEmail\r\nconst randomEmail = pm.variables.replaceIn(\"{{$randomEmail}}\");\r\n// Записываем это значение в переменную окружения Postman registration_email\r\npm.environment.set(\"registration_email\", randomEmail);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"email\": \"@example.com\",\r\n\"password\": \"{{$randomPassword}}\",\r\n\"profession_ids\": {\r\n\"profession_id1\": 1,\r\n\"profession_id2\": 2,\r\n\"profession_id3\": 3\r\n    }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Регистрация с email без доменной части",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 400\npm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n    });\n// Получаем  JSON из ответа сервера\nconst jsonData = pm.response.json();\n// Проверяем, что в ответе присутствует поле email\npm.test(\"В ответе присутствует поле email\", function () {\n    pm.expect(jsonData).to.have.property('email');\n}); \n// Проверяем, что email является массивом\npm.test(\"email является массивом\", function () {\n    pm.expect(jsonData.email).to.be.an('array');\n});\n// Проверяем, что массив email не пустой\npm.test(\"email не пустой\", function () {\n    pm.expect(jsonData.email).to.not.be.empty;\n    });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем случайный email и временно сохраняем его в JavaScript-переменную randomEmail\r\nconst randomEmail = pm.variables.replaceIn(\"{{$randomEmail}}\");\r\n// Записываем это значение в переменную окружения Postman registration_email\r\npm.environment.set(\"registration_email\", randomEmail);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"email\": \"user@.com\",\r\n\"password\": \"{{$randomPassword}}\",\r\n\"profession_ids\": {\r\n\"profession_id1\": 1,\r\n\"profession_id2\": 2,\r\n\"profession_id3\": 3\r\n    }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Регистрация с email без доменной зоны",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 400\npm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n    });\n// Получаем  JSON из ответа сервера\nconst jsonData = pm.response.json();\n// Проверяем, что в ответе присутствует поле email\npm.test(\"В ответе присутствует поле email\", function () {\n    pm.expect(jsonData).to.have.property('email');\n}); \n// Проверяем, что email является массивом\npm.test(\"email является массивом\", function () {\n    pm.expect(jsonData.email).to.be.an('array');\n});\n// Проверяем, что массив email не пустой\npm.test(\"email не пустой\", function () {\n    pm.expect(jsonData.email).to.not.be.empty;\n    });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем случайный email и временно сохраняем его в JavaScript-переменную randomEmail\r\nconst randomEmail = pm.variables.replaceIn(\"{{$randomEmail}}\");\r\n// Записываем это значение в переменную окружения Postman registration_email\r\npm.environment.set(\"registration_email\", randomEmail);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"email\": \"user@example.\",\r\n\"password\": \"{{$randomPassword}}\",\r\n\"profession_ids\": {\r\n\"profession_id1\": 1,\r\n\"profession_id2\": 2,\r\n\"profession_id3\": 3\r\n    }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Регистрация с email, содержащим пробел",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 400\npm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n    });\n// Получаем  JSON из ответа сервера\nconst jsonData = pm.response.json();\n// Проверяем, что в ответе присутствует поле email\npm.test(\"В ответе присутствует поле email\", function () {\n    pm.expect(jsonData).to.have.property('email');\n}); \n// Проверяем, что email является массивом\npm.test(\"email является массивом\", function () {\n    pm.expect(jsonData.email).to.be.an('array');\n});\n// Проверяем, что массив email не пустой\npm.test(\"email не пустой\", function () {\n    pm.expect(jsonData.email).to.not.be.empty;\n    });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем случайный email и временно сохраняем его в JavaScript-переменную randomEmail\r\nconst randomEmail = pm.variables.replaceIn(\"{{$randomEmail}}\");\r\n// Записываем это значение в переменную окружения Postman registration_email\r\npm.environment.set(\"registration_email\", randomEmail);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"email\": \"user @example.com\",\r\n\"password\": \"{{$randomPassword}}\",\r\n\"profession_ids\": {\r\n\"profession_id1\": 1,\r\n\"profession_id2\": 2,\r\n\"profession_id3\": 3\r\n    }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Регистрация с двумя символами @ в email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 400\npm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n    });\n// Получаем  JSON из ответа сервера\nconst jsonData = pm.response.json();\n// Проверяем, что в ответе присутствует поле email\npm.test(\"В ответе присутствует поле email\", function () {\n    pm.expect(jsonData).to.have.property('email');\n}); \n// Проверяем, что email является массивом\npm.test(\"email является массивом\", function () {\n    pm.expect(jsonData.email).to.be.an('array');\n});\n// Проверяем, что массив email не пустой\npm.test(\"email не пустой\", function () {\n    pm.expect(jsonData.email).to.not.be.empty;\n    });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем случайный email и временно сохраняем его в JavaScript-переменную randomEmail\r\nconst randomEmail = pm.variables.replaceIn(\"{{$randomEmail}}\");\r\n// Записываем это значение в переменную окружения Postman registration_email\r\npm.environment.set(\"registration_email\", randomEmail);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"email\": \"user@@example.com\",\r\n\"password\": \"{{$randomPassword}}\",\r\n\"profession_ids\": {\r\n\"profession_id1\": 1,\r\n\"profession_id2\": 2,\r\n\"profession_id3\": 3\r\n    }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Регистрация без password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 400\npm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n    });\n// Получаем  JSON из ответа сервера\nconst jsonData = pm.response.json();\n// Проверяем, что в ответе присутствует поле password\npm.test(\"В ответе присутствуют password\", function () {\n    pm.expect(jsonData).to.have.property('password');\n}); \n// Проверяем, что password является массивом\npm.test(\"password является массивом\", function () {\n    pm.expect(jsonData.password).to.be.an('array');\n});\n// Проверяем, что массив password не пустой\npm.test(\"password не пустой\", function () {\n    pm.expect(jsonData.password).to.not.be.empty;\n    });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем случайный email и временно сохраняем его в JavaScript-переменную randomEmail\r\nconst randomEmail = pm.variables.replaceIn(\"{{$randomEmail}}\");\r\n// Записываем это значение в переменную окружения Postman registration_email\r\npm.environment.set(\"registration_email\", randomEmail);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"email\": \"{{registration_email}}\",\r\n\"profession_ids\": {\r\n\"profession_id1\": 1,\r\n\"profession_id2\": 2,\r\n\"profession_id3\": 3\r\n    }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Регистрация с пустым password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 400\npm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n    });\n// Получаем  JSON из ответа сервера\nconst jsonData = pm.response.json();\n// Проверяем, что в ответе присутствует поле password\npm.test(\"В ответе присутствуют password\", function () {\n    pm.expect(jsonData).to.have.property('password');\n}); \n// Проверяем, что password является массивом\npm.test(\"password является массивом\", function () {\n    pm.expect(jsonData.password).to.be.an('array');\n});\n// Проверяем, что массив password не пустой\npm.test(\"password не пустой\", function () {\n    pm.expect(jsonData.password).to.not.be.empty;\n    });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем случайный email и временно сохраняем его в JavaScript-переменную randomEmail\r\nconst randomEmail = pm.variables.replaceIn(\"{{$randomEmail}}\");\r\n// Записываем это значение в переменную окружения Postman registration_email\r\npm.environment.set(\"registration_email\", randomEmail);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"email\": \"{{registration_email}}\",\r\n\"password\": \"\",\r\n\"profession_ids\": {\r\n\"profession_id1\": 1,\r\n\"profession_id2\": 2,\r\n\"profession_id3\": 3\r\n    }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Регистрация с password: null",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 400\npm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n    });\n// Получаем  JSON из ответа сервера\nconst jsonData = pm.response.json();\n// Проверяем, что в ответе присутствует поле password\npm.test(\"В ответе присутствуют password\", function () {\n    pm.expect(jsonData).to.have.property('password');\n}); \n// Проверяем, что password является массивом\npm.test(\"password является массивом\", function () {\n    pm.expect(jsonData.password).to.be.an('array');\n});\n// Проверяем, что массив password не пустой\npm.test(\"password не пустой\", function () {\n    pm.expect(jsonData.password).to.not.be.empty;\n    });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем случайный email и временно сохраняем его в JavaScript-переменную randomEmail\r\nconst randomEmail = pm.variables.replaceIn(\"{{$randomEmail}}\");\r\n// Записываем это значение в переменную окружения Postman registration_email\r\npm.environment.set(\"registration_email\", randomEmail);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"email\": \"{{registration_email}}\",\r\n\"password\": null,\r\n\"profession_ids\": {\r\n\"profession_id1\": 1,\r\n\"profession_id2\": 2,\r\n\"profession_id3\": 3\r\n    }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Регистрация с пустым объектом profession_ids",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 400\npm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n});\n\n// Получаем JSON из ответа сервера\nconst jsonData = pm.response.json();\n\n// Проверяем, что в ответе присутствует поле profession_ids\npm.test(\"В ответе присутствует profession_ids\", function () {\n    pm.expect(jsonData).to.have.property('profession_ids');\n});\n\n// Проверяем, что profession_ids является объектом\npm.test(\"profession_ids является объектом\", function () {\n    pm.expect(jsonData.profession_ids).to.be.an('object');\n});\n\n// Проверяем, что в profession_ids присутствует ошибка для profession_id1\npm.test(\"В profession_ids присутствует profession_id1\", function () {\n    pm.expect(jsonData.profession_ids).to.have.property('profession_id1');\n});\n\n// Проверяем, что ошибка profession_id1 не пустая\npm.test(\"Ошибка profession_id1 не пустая\", function () {\n    pm.expect(jsonData.profession_ids.profession_id1).to.not.be.empty;\n});"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем случайный email и временно сохраняем его в JavaScript-переменную randomEmail\r\nconst randomEmail = pm.variables.replaceIn(\"{{$randomEmail}}\");\r\n// Записываем это значение в переменную окружения Postman registration_email\r\npm.environment.set(\"registration_email\", randomEmail);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"email\": \"{{registration_email}}\",\r\n\"password\": \"{{$randomPassword}}\",\r\n\"profession_ids\": {}\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Регистрация без profession_ids",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 400\npm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n});\n\n// Получаем JSON из ответа сервера\nconst jsonData = pm.response.json();\n\n// Проверяем, что в ответе присутствует поле profession_ids\npm.test(\"В ответе присутствует profession_ids\", function () {\n    pm.expect(jsonData).to.have.property('profession_ids');\n});\n\n// Проверяем, что поле profession_ids не пустое\npm.test(\"Поле profession_ids не пустое\", function () {\n    pm.expect(jsonData.profession_ids).to.not.be.empty;\n});"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем случайный email и временно сохраняем его в JavaScript-переменную randomEmail\r\nconst randomEmail = pm.variables.replaceIn(\"{{$randomEmail}}\");\r\n// Записываем это значение в переменную окружения Postman registration_email\r\npm.environment.set(\"registration_email\", randomEmail);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"email\": \"{{registration_email}}\",\r\n\"password\": \"{{$randomPassword}}\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Регистрация с нечисловым profession_id1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 400\npm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n});\n\n// Получаем JSON из ответа сервера\nconst jsonData = pm.response.json();\n\n// Проверяем, что в ответе присутствует поле profession_ids\npm.test(\"В ответе присутствует profession_ids\", function () {\n    pm.expect(jsonData).to.have.property('profession_ids');\n});\n\n// Проверяем, что profession_ids является объектом\npm.test(\"profession_ids является объектом\", function () {\n    pm.expect(jsonData.profession_ids).to.be.an('object');\n});\n\n// Проверяем, что в profession_ids присутствует ошибка для profession_id1\npm.test(\"В profession_ids присутствует profession_id1\", function () {\n    pm.expect(jsonData.profession_ids).to.have.property('profession_id1');\n});\n\n"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем случайный email и временно сохраняем его в JavaScript-переменную randomEmail\r\nconst randomEmail = pm.variables.replaceIn(\"{{$randomEmail}}\");\r\n// Записываем это значение в переменную окружения Postman registration_email\r\npm.environment.set(\"registration_email\", randomEmail);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"email\": \"{{registration_email}}\",\r\n\"password\": \"{{$randomPassword}}\",\r\n\"profession_ids\": {\r\n\"profession_id1\": \"abc\",\r\n\"profession_id2\": 2,\r\n\"profession_id3\": 3\r\n    }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Регистрация с нечисловым profession_id2",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 400\npm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n});\n\n// Получаем JSON из ответа сервера\nconst jsonData = pm.response.json();\n\n// Проверяем, что в ответе присутствует поле profession_ids\npm.test(\"В ответе присутствует profession_ids\", function () {\n    pm.expect(jsonData).to.have.property('profession_ids');\n});\n\n// Проверяем, что profession_ids является объектом\npm.test(\"profession_ids является объектом\", function () {\n    pm.expect(jsonData.profession_ids).to.be.an('object');\n});\n\n// Проверяем, что в profession_ids присутствует ошибка для profession_id2\npm.test(\"В profession_ids присутствует profession_id2\", function () {\n    pm.expect(jsonData.profession_ids).to.have.property('profession_id2');\n});\n\n"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем случайный email и временно сохраняем его в JavaScript-переменную randomEmail\r\nconst randomEmail = pm.variables.replaceIn(\"{{$randomEmail}}\");\r\n// Записываем это значение в переменную окружения Postman registration_email\r\npm.environment.set(\"registration_email\", randomEmail);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"email\": \"{{registration_email}}\",\r\n\"password\": \"{{$randomPassword}}\",\r\n\"profession_ids\": {\r\n\"profession_id1\": 1,\r\n\"profession_id2\": \"abc\",\r\n\"profession_id3\": 3\r\n    }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Регистрация с нечисловым profession_id3",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус-код 400\npm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n});\n\n// Получаем JSON из ответа сервера\nconst jsonData = pm.response.json();\n\n// Проверяем, что в ответе присутствует поле profession_ids\npm.test(\"В ответе присутствует profession_ids\", function () {\n    pm.expect(jsonData).to.have.property('profession_ids');\n});\n\n// Проверяем, что profession_ids является объектом\npm.test(\"profession_ids является объектом\", function () {\n    pm.expect(jsonData.profession_ids).to.be.an('object');\n});\n\n// Проверяем, что в profession_ids присутствует ошибка для profession_id3\npm.test(\"В profession_ids присутствует profession_id3\", function () {\n    pm.expect(jsonData.profession_ids).to.have.property('profession_id3');\n});\n\n"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем случайный email и временно сохраняем его в JavaScript-переменную randomEmail\r\nconst randomEmail = pm.variables.replaceIn(\"{{$randomEmail}}\");\r\n// Записываем это значение в переменную окружения Postman registration_email\r\npm.environment.set(\"registration_email\", randomEmail);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"email\": \"{{registration_email}}\",\r\n\"password\": \"{{$randomPassword}}\",\r\n\"profession_ids\": {\r\n\"profession_id1\": 1,\r\n\"profession_id2\": 2,\r\n\"profession_id3\": \"abc\"\r\n    }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Регистрация с числовым invite_hash",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n});\n\nconst jsonData = pm.response.json();\n\npm.test(\"В ответе присутствует invite_hash\", function () {\n    pm.expect(jsonData).to.have.property('invite_hash');\n});\n\n"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем случайный email и временно сохраняем его в JavaScript-переменную randomEmail\r\nconst randomEmail = pm.variables.replaceIn(\"{{$randomEmail}}\");\r\n// Записываем это значение в переменную окружения Postman registration_email\r\npm.environment.set(\"registration_email\", randomEmail);\r\nconsole.log(\"REG-027 registration_email:\", pm.variables.replaceIn(\"{{registration_email}}\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"email\": \"{{registration_email}}\",\r\n\"password\": \"{{$randomPassword}}\",\r\n\"profession_ids\": {\r\n\"profession_id1\": 1,\r\n\"profession_id2\": 2,\r\n\"profession_id3\": 3\r\n    },\r\n \"invite_hash\": 123\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Регистрация с  отсутствующим invite_hash",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что в запросе отсутствует invite_hash\npm.test(\"В запросе отсутствует invite_hash\", function () {\n    const requestBody = JSON.parse(pm.request.body.raw);\n\n    pm.expect(requestBody).to.not.have.property(\"invite_hash\");\n});\n\n// Проверяем успешную регистрацию\npm.test(\"Status code is 201\", function () {\n    pm.response.to.have.status(201);\n});"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем случайный email и временно сохраняем его в JavaScript-переменную randomEmail\r\nconst randomEmail = pm.variables.replaceIn(\"{{$randomEmail}}\");\r\n// Записываем это значение в переменную окружения Postman registration_email\r\npm.environment.set(\"registration_email\", randomEmail);\r\nconsole.log(\"REG-027 registration_email:\", pm.variables.replaceIn(\"{{registration_email}}\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"email\": \"{{registration_email}}\",\r\n\"password\": \"{{$randomPassword}}\",\r\n\"profession_ids\": {\r\n\"profession_id1\": 1,\r\n\"profession_id2\": 2,\r\n\"profession_id3\": 3\r\n    }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Регистрация с invite_hash:  null",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер отклонил запрос и статус-код ответа равен 400 (Bad Request)\npm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n});\n// Получаем json  из ответа сервера\nconst responseBody = pm.response.json();\n\n// Проверяем наличие поля с ошибкой\npm.test(\"Response contains invite_hash validation error\", function () {\n    pm.expect(responseBody).to.have.property(\"invite_hash\");\n    pm.expect(responseBody.invite_hash).to.be.an(\"array\");\n    pm.expect(responseBody.invite_hash).to.not.be.empty;\n})"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем случайный email и временно сохраняем его в JavaScript-переменную randomEmail\r\nconst randomEmail = pm.variables.replaceIn(\"{{$randomEmail}}\");\r\n// Записываем это значение в переменную окружения Postman registration_email\r\npm.environment.set(\"registration_email\", randomEmail);\r\nconsole.log(\"REG-027 registration_email:\", pm.variables.replaceIn(\"{{registration_email}}\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"email\": \"{{registration_email}}\",\r\n\"password\": \"{{$randomPassword}}\",\r\n\"profession_ids\": {\r\n\"profession_id1\": 1,\r\n\"profession_id2\": 2,\r\n\"profession_id3\": 3\r\n    },\r\n \"invite_hash\": null\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Регистрация с  invite_hash со значением boolean",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер отклонил запрос и статус-код ответа равен 400 (Bad Request)\npm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n});\n// Получаем тело ответа сервера и преобразуем JSON из него в JavaScript-объект.\nconst responseBody = pm.response.json();\n\n// Проверяем наличие ошибки в поле invite_hash\npm.test(\"Response contains invite_hash validation error\", function () {\n    pm.expect(responseBody).to.have.property(\"invite_hash\");\n    pm.expect(responseBody.invite_hash).to.be.an(\"array\");\n    pm.expect(responseBody.invite_hash).to.not.be.empty;\n})\n"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем случайный email и временно сохраняем его в JavaScript-переменную randomEmail\r\nconst randomEmail = pm.variables.replaceIn(\"{{$randomEmail}}\");\r\n// Записываем это значение в переменную окружения Postman registration_email\r\npm.environment.set(\"registration_email\", randomEmail);\r\nconsole.log(\"REG-027 registration_email:\", pm.variables.replaceIn(\"{{registration_email}}\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"email\": \"{{registration_email}}\",\r\n\"password\": \"{{$randomPassword}}\",\r\n\"profession_ids\": {\r\n\"profession_id1\": 1,\r\n\"profession_id2\": 2,\r\n\"profession_id3\": 3\r\n    },\r\n \"invite_hash\": true\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Регистрация с  invite_hash со значением  -  массив [] Copy",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер отклонил запрос и статус-код ответа равен 400 (Bad Request)\npm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n});\n\n// Получаем тело ответа сервера и преобразуем JSON из него в JavaScript-объект.\nconst responseBody = pm.response.json();\n\n// Проверяем наличие ошибки в поле invite_hash\npm.test(\"Response contains invite_hash validation error\", function () {\n    pm.expect(responseBody).to.have.property(\"invite_hash\");\n    pm.expect(responseBody.invite_hash).to.be.an(\"array\");\n    pm.expect(responseBody.invite_hash).to.not.be.empty;\n})\n"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем случайный email и временно сохраняем его в JavaScript-переменную randomEmail\r\nconst randomEmail = pm.variables.replaceIn(\"{{$randomEmail}}\");\r\n// Записываем это значение в переменную окружения Postman registration_email\r\npm.environment.set(\"registration_email\", randomEmail);\r\nconsole.log(\"REG-027 registration_email:\", pm.variables.replaceIn(\"{{registration_email}}\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"email\": \"{{registration_email}}\",\r\n\"password\": \"{{$randomPassword}}\",\r\n\"profession_ids\": {\r\n\"profession_id1\": 1,\r\n\"profession_id2\": 2,\r\n\"profession_id3\": 3\r\n    },\r\n \"invite_hash\": []\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Регистрация с  invite_hash со значением -  объект  {}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер отклонил запрос и статус-код ответа равен 400 (Bad Request)\npm.test(\"Status code is 400\", function () {\n    pm.response.to.have.status(400);\n});\n\n// Получаем тело ответа сервера и преобразуем JSON из него в JavaScript-объект.\nconst responseBody = pm.response.json();\n\n// Проверяем наличие ошибки в поле invite_hash\npm.test(\"Response contains invite_hash validation error\", function () {\n    pm.expect(responseBody).to.have.property(\"invite_hash\");\n    pm.expect(responseBody.invite_hash).to.be.an(\"array\");\n    pm.expect(responseBody.invite_hash).to.not.be.empty;\n})\n"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем случайный email и временно сохраняем его в JavaScript-переменную randomEmail\r\nconst randomEmail = pm.variables.replaceIn(\"{{$randomEmail}}\");\r\n// Записываем это значение в переменную окружения Postman registration_email\r\npm.environment.set(\"registration_email\", randomEmail);\r\nconsole.log(\"REG-027 registration_email:\", pm.variables.replaceIn(\"{{registration_email}}\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"email\": \"{{registration_email}}\",\r\n\"password\": \"{{$randomPassword}}\",\r\n\"profession_ids\": {\r\n\"profession_id1\": 1,\r\n\"profession_id2\": 2,\r\n\"profession_id3\": 3\r\n    },\r\n \"invite_hash\": {}\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Refresh Token",
+      "item": [
+        {
+          "name": "Получение нового access-токена",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус 200\r\npm.test(\"Сервер вернул статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n// Проверяем, что Content-Type представлен в виде application/json\r\npm.test(\"Сервер вернул правильный Content-Type\", function () {\r\n    pm.response.to.have.header(\"Content-Type\", \"application/json\");\r\n});\r\n// Получаем json из тела ответа\r\nconst jsonData = pm.response.json();\r\n\r\n// Сохраняем старый access_token из переменных окружения для последующего сравнения\r\nconst oldAccessToken = pm.environment.get(\"access_token\");\r\n\r\n// Проверяем, что поле \"access_token\" существует\r\npm.test(\"access_token существует\", function () {\r\n    pm.expect(jsonData).to.have.property(\"access\");\r\n});\r\n// Проверяем, что access_token не пустая строка\r\npm.test(\"access_token не пустая строка\", function () {\r\n    pm.expect(jsonData.access).to.be.a(\"string\");\r\n    pm.expect(jsonData.access).not.empty;\r\n});\r\n\r\n// Проверяем, что новый полученный access_token не совпадает с старым\r\npm.test(\"access_token не совпадает с старым\", function () {\r\n    pm.expect(jsonData.access).to.not.equal(oldAccessToken);\r\n});\r\n\r\n// Сохраняем новый access_token в переменную окружения\r\npm.environment.set(\"access_token\", jsonData.access);\r\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"refresh\": \"{{refresh_token}}\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/refresh/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "refresh",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Отсутствует refresh-токен",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус 400\r\npm.test(\"Сервер вернул статус 400\", function () {\r\n    pm.response.to.have.status(400);\r\n});\r\n// Получаем json из тела ответа\r\nconst jsonData = pm.response.json();\r\n// Проверяем, что ответ сервера содержит сообщение об обязательности поля\r\npm.test(\"Ответ содержит ошибку для refresh\", function () {\r\n    pm.expect(jsonData).to.have.property(\"refresh\")\r\n});\r\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/refresh/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "refresh",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh-токен = null",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус 400\r\npm.test(\"Сервер вернул статус 400\", function () {\r\n    pm.response.to.have.status(400);\r\n});\r\n// Получаем json из тела ответа\r\nconst jsonData = pm.response.json();\r\n// Проверяем, что ответ сервера содержит сообщение о недопустимости пустого поля\r\npm.test(\"Ответ содержит ошибку для refresh\", function () {\r\n    pm.expect(jsonData).to.have.property(\"refresh\")\r\n});\r\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"refresh\": null\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/refresh/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "refresh",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Невалидный refresh-токен",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Проверяем, что сервер вернул статус 401\r\npm.test(\"Сервер вернул статус 401\", function () {\r\n    pm.response.to.have.status(401);\r\n});\r\n// Получаем json из тела ответа\r\nconst jsonData = pm.response.json();\r\n// Проверяем структуру ответа\r\npm.test(\"Ответ содержит поля ошибки токена\", function () {\r\n    pm.expect(jsonData).to.have.property(\"detail\");\r\n    pm.expect(jsonData).to.have.property(\"code\");\r\n});\r\n// Проверяем код ошибки\r\npm.test(\"Код ошибки — token_not_valid\", function () {\r\n    pm.expect(jsonData.code).to.equal(\"token_not_valid\");    \r\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"refresh\": \"invalid_refresh_token\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/refresh/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "refresh",
+                ""
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Exploratory testing",
+      "item": [
+        {
+          "name": "Авторизация с email без символа @",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"userexample.com\",\r\n  \"password\": \"{{password_auth}}\"\r\n}\r\n\r\n  ",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/login/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "login",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Авторизация с email без домена",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "\n\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"user@example\",\r\n  \"password\": \"{{password_auth}}\"\r\n}\r\n\r\n  ",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/login/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "login",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Авторизация с email без доменной зоны",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"user@\",\r\n  \"password\": \"{{password_auth}}\"\r\n}\r\n\r\n  ",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/login/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "login",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Авторизация с email, содержащим пробелы",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"{{user @example.com}}\",\r\n  \"password\": \"{{password_auth}}\"\r\n}\r\n\r\n  ",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/login/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "login",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Регистрация с пустым значением invite_hash",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем тело отправленного запроса\nconst requestBody = JSON.parse(pm.request.body.raw);\n\n// Проверяем, что invite_hash передан пустой строкой\npm.test(\"invite_hash передан пустой строкой\", function () {\n    pm.expect(requestBody).to.have.property(\"invite_hash\");\n    pm.expect(requestBody.invite_hash).to.eql(\"\");\n});\n\n// Проверяем успешную регистрацию\npm.test(\"Статус код 201\", function () {\n    pm.response.to.have.status(201);\n});\n\n"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Получаем случайный email и временно сохраняем его в JavaScript-переменную randomEmail\r\nconst randomEmail = pm.variables.replaceIn(\"{{$randomEmail}}\");\r\n// Записываем это значение в переменную окружения Postman registration_email\r\npm.environment.set(\"registration_email\", randomEmail);\r\nconsole.log(\"REG-027 registration_email:\", pm.variables.replaceIn(\"{{registration_email}}\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"email\": \"{{registration_email}}\",\r\n\"password\": \"{{$randomPassword}}\",\r\n\"profession_ids\": {\r\n\"profession_id1\": 1,\r\n\"profession_id2\": 2,\r\n\"profession_id3\": 3\r\n    },\r\n \"invite_hash\": \"\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/authenticate/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "authenticate",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "profile_id",
+      "value": ""
+    },
+    {
+      "key": "registered_profile_id",
+      "value": ""
+    }
+  ]
+}
